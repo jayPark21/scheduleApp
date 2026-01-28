@@ -23,7 +23,16 @@
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "display": "standalone",
+      "themeColor": "#151C2F",
+      "backgroundColor": "#151C2F",
+      "name": "ScheduleApp",
+      "shortName": "Schedule"
+    },
+    "experiments": {
+      "baseUrl": "/"
     }
   }
 }
