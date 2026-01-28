@@ -97,7 +97,6 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.primary[500],
         top: -50,
         right: -50,
-        filter: 'blur(40px)', // Note: standard ImageBlur is better but View blur works on some versions or just opacity
     },
     circle2: {
         width: 200,
