@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -20,7 +20,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.asadall.taskmanagementmobile"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -33,6 +34,11 @@
     },
     "experiments": {
       "baseUrl": "/"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "11d8e318-7a58-44a0-8e2e-a5dc243c4966"
+      }
     }
   }
 }
