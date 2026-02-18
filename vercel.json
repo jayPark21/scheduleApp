@@ -1,0 +1,14 @@
+{
+    "version": 2,
+    "public": true,
+    "cleanUrls": true,
+    "trailingSlash": false,
+    "buildCommand": "npm run export",
+    "outputDirectory": "dist",
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}
