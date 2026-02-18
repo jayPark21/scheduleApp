@@ -75,27 +75,81 @@ export const db = {
     },
 
     // --- Profile ---
-    getProfile: async (): Promise<UserProfile | null> => {
+    getProfile: async (): Promise<UserProfile> => {
         try {
             const jsonValue = await AsyncStorage.getItem(KEYS.PROFILE);
-            return jsonValue != null ? JSON.parse(jsonValue) : null;
+            if (jsonValue != null) {
+                return JSON.parse(jsonValue);
+            }
+            const defaultProfile: UserProfile = {
+                name: '대표님',
+                avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop',
+                role: 'Solo CEO',
+                dailyGoalHours: 4,
+                level: 1,
+                xp: 0,
+                streak: 0,
+            };
+            await AsyncStorage.setItem(KEYS.PROFILE, JSON.stringify(defaultProfile));
+            return defaultProfile;
         } catch (e) {
-            return null;
+            return { name: '대표님', avatar: '', role: 'CEO', dailyGoalHours: 4, level: 1, xp: 0, streak: 0 };
         }
     },
 
     saveProfile: async (profile: UserProfile) => {
         try {
-            const jsonValue = JSON.stringify(profile);
-            await AsyncStorage.setItem(KEYS.PROFILE, jsonValue);
+            await AsyncStorage.setItem(KEYS.PROFILE, JSON.stringify(profile));
         } catch (e) {
             console.error('Failed to save profile', e);
         }
     },
 
+    addXP: async (amount: number) => {
+        const profile = await db.getProfile();
+        let newXp = profile.xp + amount;
+        let newLevel = profile.level;
+
+        // Simple level up logic: level * 100 XP needed
+        const nextLevelXp = newLevel * 100;
+        if (newXp >= nextLevelXp) {
+            newXp -= nextLevelXp;
+            newLevel += 1;
+            // Alert or callback could go here
+        }
+
+        await db.saveProfile({ ...profile, xp: newXp, level: newLevel });
+        return { leveledUp: newLevel > profile.level, newLevel };
+    },
+
+    updateStreak: async () => {
+        const profile = await db.getProfile();
+        const today = new Date().toISOString().split('T')[0];
+        const lastDate = profile.lastActiveDate;
+
+        if (lastDate === today) return profile.streak;
+
+        let newStreak = profile.streak;
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        if (lastDate === yesterdayStr) {
+            newStreak += 1;
+        } else {
+            newStreak = 1; // Reset or start new
+        }
+
+        await db.saveProfile({ ...profile, streak: newStreak, lastActiveDate: today });
+        return newStreak;
+    },
+
     // --- Auth ---
     setLoggedIn: async (isLoggedIn: boolean) => {
         try {
+            if (isLoggedIn) {
+                await db.updateStreak(); // Update streak on login
+            }
             await AsyncStorage.setItem(KEYS.IS_LOGGED_IN, isLoggedIn.toString());
         } catch (e) {
             console.error('Failed to set login status', e);

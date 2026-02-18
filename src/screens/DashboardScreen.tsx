@@ -2,12 +2,13 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert, SectionList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { Plus } from 'lucide-react-native';
+import { Plus, Flame } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SHADOWS, GRADIENTS } from '../constants/theme';
 import { db } from '../services/dbService';
 import { Event, UserProfile, Goal } from '../types';
 import EventItem from '../components/EventItem';
+import { LevelStatus } from '../components/LevelStatus';
 import { format, addDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -26,11 +27,29 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
         const loadedProfile = await db.getProfile();
 
         if (!loadedProfile) {
-            const defaultProfile = { name: 'User', role: 'Planner', avatar: '', dailyGoalHours: 8 };
+            const defaultProfile: UserProfile = {
+                name: 'User',
+                role: 'Solo CEO',
+                avatar: '',
+                dailyGoalHours: 4,
+                level: 1,
+                xp: 0,
+                streak: 0
+            };
             await db.saveProfile(defaultProfile);
             setProfile(defaultProfile);
         } else {
-            setProfile(loadedProfile);
+            // Ensure all properties exist (migration)
+            const migratedProfile = {
+                ...loadedProfile,
+                level: loadedProfile.level || 1,
+                xp: loadedProfile.xp || 0,
+                streak: loadedProfile.streak || 0
+            };
+            if (JSON.stringify(migratedProfile) !== JSON.stringify(loadedProfile)) {
+                await db.saveProfile(migratedProfile);
+            }
+            setProfile(migratedProfile);
         }
 
         const today = new Date().toISOString().split('T')[0];
@@ -90,8 +109,22 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
 
     const handleToggleComplete = async (id: string) => {
         const allEvents = await db.getEvents();
-        const updatedEvents = allEvents.map(e => e.id === id ? { ...e, completed: !e.completed } : e);
+        const targetEvent = allEvents.find(e => e.id === id);
+        if (!targetEvent) return;
+
+        const isCompleting = !targetEvent.completed;
+        const updatedEvents = allEvents.map(e => e.id === id ? { ...e, completed: isCompleting } : e);
         await db.saveEvents(updatedEvents);
+
+        if (isCompleting) {
+            const { leveledUp, newLevel } = await db.addXP(20); // 20 XP per task
+            if (leveledUp) {
+                Alert.alert("LEVEL UP! 🎊", `축하합니다 대표님! 레벨 ${newLevel}이 되셨습니다! 더 높은 곳으로 가시죠! 🚀`);
+            }
+        } else {
+            await db.addXP(-20); // Reverse XP if unchecked
+        }
+
         loadData();
     };
 
@@ -133,12 +166,25 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
                             Hello, <Text style={styles.nameHighlight}>{profile?.name || 'User'}</Text>
                         </Text>
                     </View>
-                    <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('Profile')}>
-                        <LinearGradient colors={GRADIENTS.primary} style={styles.avatarGradient}>
-                            <Text style={styles.avatarText}>{profile?.name?.[0] || 'U'}</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
+                    <View style={styles.headerRight}>
+                        <TouchableOpacity
+                            style={styles.focusButton}
+                            onPress={() => navigation.navigate('Focus')}
+                        >
+                            <LinearGradient colors={['#FF7E33', '#FF4E00']} style={styles.focusGradient}>
+                                <Flame size={20} color={COLORS.white} />
+                            </LinearGradient>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('Profile')}>
+                            <LinearGradient colors={GRADIENTS.primary} style={styles.avatarGradient}>
+                                <Text style={styles.avatarText}>{profile?.name?.[0] || 'U'}</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
                 </View>
+
+                {profile && <LevelStatus profile={profile} />}
 
                 <SectionList
                     sections={sections}
@@ -212,6 +258,24 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 10,
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    focusButton: {
+        marginRight: 12,
+        ...SHADOWS.glow,
+        shadowColor: '#FF7E33',
+    },
+    focusGradient: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
     },
     dateText: {
         fontSize: 14,

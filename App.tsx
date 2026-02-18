@@ -18,6 +18,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import AddEventScreen from './src/screens/AddEventScreen';
 import ManageGoalsScreen from './src/screens/ManageGoalsScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
+import FocusScreen from './src/screens/FocusScreen';
 import { notificationService } from './src/services/notificationService';
 
 import { Home, Calendar as CalendarIcon, Settings, Plus, User } from 'lucide-react-native';
@@ -158,6 +159,11 @@ export default function App() {
                                     name="EditProfile"
                                     component={EditProfileScreen}
                                     options={{ presentation: 'card', headerShown: false }}
+                                />
+                                <Stack.Screen
+                                    name="Focus"
+                                    component={FocusScreen}
+                                    options={{ presentation: 'fullScreenModal', animation: 'fade' }}
                                 />
                             </>
                         )}

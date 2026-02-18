@@ -21,6 +21,10 @@ export interface UserProfile {
     avatar: string;
     role: string;
     dailyGoalHours: number;
+    level: number;
+    xp: number;
+    streak: number;
+    lastActiveDate?: string; // YYYY-MM-DD
 }
 
 export const DEFAULT_GOALS: Goal[] = [
