@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../constants/theme';
-import { X, User, Check, Camera } from 'lucide-react-native';
+import { X, User, Check, Camera, Image as ImageIcon } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { db } from '../services/dbService';
 import { UserProfile } from '../types';
 import { useFocusEffect } from '@react-navigation/native';
@@ -25,6 +26,19 @@ const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation }) => 
     const [role, setRole] = useState('');
     const [avatar, setAvatar] = useState('');
 
+    const pickImage = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
+
+        if (!result.canceled) {
+            setAvatar(result.assets[0].uri);
+        }
+    };
+
     useFocusEffect(
         React.useCallback(() => {
             db.getProfile().then(p => {
@@ -43,16 +57,15 @@ const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation }) => 
             return;
         }
 
+        const current = await db.getProfile();
         const updatedProfile: UserProfile = {
+            ...current,
             name,
             role: role || 'Planner',
             avatar,
-            dailyGoalHours: 8 // Keep default or load if we had it in edit
         };
 
-        // We need to merge with existing to not lose other fields if any
-        const current = await db.getProfile();
-        await db.saveProfile({ ...current, ...updatedProfile });
+        await db.saveProfile(updatedProfile);
 
         Alert.alert('완료', '프로필이 수정되었습니다.');
         navigation.goBack();
@@ -76,7 +89,7 @@ const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation }) => 
             >
                 <ScrollView contentContainerStyle={styles.content}>
                     <View style={styles.avatarSection}>
-                        <View style={styles.avatarWrapper}>
+                        <TouchableOpacity style={styles.avatarWrapper} onPress={pickImage}>
                             {avatar ? (
                                 <Image source={{ uri: avatar }} style={styles.avatarImage} />
                             ) : (
@@ -87,7 +100,11 @@ const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation }) => 
                             <View style={styles.cameraIcon}>
                                 <Camera size={14} color="white" />
                             </View>
-                        </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.pickImageBtn} onPress={pickImage}>
+                            <ImageIcon size={16} color={COLORS.primary[400]} />
+                            <Text style={styles.pickImageText}>앨범에서 선택</Text>
+                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.presetContainer}>
@@ -241,6 +258,21 @@ const styles = StyleSheet.create({
         fontSize: 16,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
+    },
+    pickImageBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        backgroundColor: 'rgba(56, 189, 248, 0.1)',
+        borderRadius: 20,
+    },
+    pickImageText: {
+        color: COLORS.primary[400],
+        fontSize: 12,
+        fontWeight: 'bold',
     },
 });
 

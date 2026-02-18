@@ -10,7 +10,7 @@ export interface Event {
     date: string;       // YYYY-MM-DD
     startTime?: string; // HH:mm (Optional now, for flexible tasks)
     endTime?: string;   // HH:mm
-    goalId: string;     // Links to Goal
+    goalId?: string;    // Links to Goal
     description?: string;
     completed: boolean;
     isRoutine?: boolean; // New: For repeated tasks

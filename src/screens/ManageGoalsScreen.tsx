@@ -29,6 +29,7 @@ const ManageGoalsScreen: React.FC<ManageGoalsScreenProps> = ({ navigation }) => 
     const [newTitle, setNewTitle] = useState('');
     const [selectedColor, setSelectedColor] = useState(COLORS_PALETTE[4]);
     const [isAdding, setIsAdding] = useState(false);
+    const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
 
     const loadGoals = async () => {
         const loaded = await db.getGoals();
@@ -51,25 +52,70 @@ const ManageGoalsScreen: React.FC<ManageGoalsScreenProps> = ({ navigation }) => 
             title: newTitle,
             color: selectedColor
         };
-        await db.saveGoals([...goals, newGoal]);
+        const updatedGoals = [...goals, newGoal];
+        await db.saveGoals(updatedGoals);
+        setNewTitle('');
+        setIsAdding(false);
+        loadGoals();
+    };
+
+    const handleStartEdit = (goal: Goal) => {
+        setEditingGoalId(goal.id);
+        setNewTitle(goal.title);
+        setSelectedColor(goal.color);
+        setIsAdding(true);
+    };
+
+    const handleUpdateGoal = async () => {
+        if (!newTitle.trim() || !editingGoalId) return;
+
+        const updatedGoals = goals.map(g =>
+            g.id === editingGoalId ? { ...g, title: newTitle, color: selectedColor } : g
+        );
+
+        await db.saveGoals(updatedGoals);
+        setEditingGoalId(null);
         setNewTitle('');
         setIsAdding(false);
         loadGoals();
     };
 
     const handleDeleteGoal = async (id: string) => {
-        Alert.alert('삭제 확인', '이 목표를 삭제하시겠습니까? 포함된 일정도 분류가 사라집니다.', [
+        Alert.alert('삭제 확인', '이 목표를 삭제하시겠습니까? 관련 일정이 분류되지 않은 상태가 될 수 있습니다.', [
             { text: '취소', style: 'cancel' },
             {
                 text: '삭제',
                 style: 'destructive',
                 onPress: async () => {
-                    const updated = goals.filter(g => g.id !== id);
-                    await db.saveGoals(updated);
+                    // 1. Filter out the goal from the goals list
+                    const updatedGoals = goals.filter(g => g.id !== id);
+                    await db.saveGoals(updatedGoals);
+
+                    // 2. Clear goalId from events that were using this goal
+                    const allEvents = await db.getEvents();
+                    const updatedEvents = allEvents.map(event =>
+                        event.goalId === id ? { ...event, goalId: undefined } : event
+                    );
+                    await db.saveEvents(updatedEvents);
+
+                    // 3. Reset UI state if we were editing this goal
+                    if (editingGoalId === id) {
+                        setEditingGoalId(null);
+                        setNewTitle('');
+                        setIsAdding(false);
+                    }
+
                     loadGoals();
                 }
             }
         ]);
+    };
+
+    const handleCancel = () => {
+        setIsAdding(false);
+        setEditingGoalId(null);
+        setNewTitle('');
+        setSelectedColor(COLORS_PALETTE[4]);
     };
 
     return (
@@ -92,13 +138,14 @@ const ManageGoalsScreen: React.FC<ManageGoalsScreenProps> = ({ navigation }) => 
 
                 {isAdding && (
                     <View style={styles.addCard}>
-                        <Text style={styles.label}>목표 이름</Text>
+                        <Text style={styles.label}>{editingGoalId ? '목표 수정' : '새 목표 이름'}</Text>
                         <TextInput
                             style={styles.input}
                             value={newTitle}
                             onChangeText={setNewTitle}
                             placeholder="예: 독서, 코딩테스트"
                             placeholderTextColor={COLORS.text[500]}
+                            autoFocus
                         />
 
                         <Text style={styles.label}>색상 선택</Text>
@@ -115,11 +162,14 @@ const ManageGoalsScreen: React.FC<ManageGoalsScreenProps> = ({ navigation }) => 
                         </View>
 
                         <View style={styles.addActions}>
-                            <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsAdding(false)}>
+                            <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
                                 <Text style={styles.cancelText}>취소</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.confirmBtn} onPress={handleAddGoal}>
-                                <Text style={styles.confirmText}>추가</Text>
+                            <TouchableOpacity
+                                style={styles.confirmBtn}
+                                onPress={editingGoalId ? handleUpdateGoal : handleAddGoal}
+                            >
+                                <Text style={styles.confirmText}>{editingGoalId ? '수정 완료' : '추가'}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -128,8 +178,16 @@ const ManageGoalsScreen: React.FC<ManageGoalsScreenProps> = ({ navigation }) => 
                 <View style={styles.list}>
                     {goals.map(goal => (
                         <View key={goal.id} style={[styles.item, { borderLeftColor: goal.color }]}>
-                            <Text style={[styles.itemTitle, { color: goal.color }]}>{goal.title}</Text>
-                            <TouchableOpacity onPress={() => handleDeleteGoal(goal.id)}>
+                            <TouchableOpacity
+                                style={{ flex: 1 }}
+                                onPress={() => handleStartEdit(goal)}
+                            >
+                                <Text style={[styles.itemTitle, { color: goal.color }]}>{goal.title}</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={{ padding: 8 }}
+                                onPress={() => handleDeleteGoal(goal.id)}
+                            >
                                 <Trash2 size={18} color={COLORS.text[500]} />
                             </TouchableOpacity>
                         </View>
