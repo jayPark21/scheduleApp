@@ -108,6 +108,8 @@ export default function App() {
         setIsLoggedIn(loggedIn);
         if (loggedIn) {
             await notificationService.registerForPushNotificationsAsync();
+            const events = await db.getEvents();
+            await notificationService.resyncAllNotifications(events);
         }
     };
 

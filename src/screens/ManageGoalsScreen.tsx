@@ -6,6 +6,7 @@ import { X, Check, Trash2, Plus } from 'lucide-react-native';
 import { db } from '../services/dbService';
 import { Goal } from '../types';
 import { useFocusEffect } from '@react-navigation/native';
+import { notificationService } from '../services/notificationService';
 
 interface ManageGoalsScreenProps {
     navigation: any;
@@ -97,6 +98,7 @@ const ManageGoalsScreen: React.FC<ManageGoalsScreenProps> = ({ navigation }) => 
                         event.goalId === id ? { ...event, goalId: undefined } : event
                     );
                     await db.saveEvents(updatedEvents);
+                    await notificationService.resyncAllNotifications(updatedEvents);
 
                     // 3. Reset UI state if we were editing this goal
                     if (editingGoalId === id) {

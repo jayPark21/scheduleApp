@@ -8,6 +8,7 @@ import { Event, Goal } from '../types';
 import { Calendar } from 'react-native-calendars';
 
 import { format, addDays, isBefore } from 'date-fns';
+import { notificationService } from '../services/notificationService';
 
 interface AddEventScreenProps {
     navigation: any;
@@ -106,6 +107,7 @@ const AddEventScreen: React.FC<AddEventScreenProps> = ({ navigation, route }: an
             }
 
             await db.saveEvents(eventsToSave);
+            await notificationService.resyncAllNotifications(eventsToSave);
         } else {
             // Creation mode: Support Range
             const newEvents: Event[] = [];
@@ -152,7 +154,9 @@ const AddEventScreen: React.FC<AddEventScreenProps> = ({ navigation, route }: an
                 });
             }
 
-            await db.saveEvents([...currentEvents, ...newEvents]);
+            const finalEvents = [...currentEvents, ...newEvents];
+            await db.saveEvents(finalEvents);
+            await notificationService.resyncAllNotifications(finalEvents);
         }
 
         navigation.goBack();

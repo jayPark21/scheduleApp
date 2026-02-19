@@ -11,6 +11,7 @@ import EventItem from '../components/EventItem';
 import { LevelStatus } from '../components/LevelStatus';
 import { format, addDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { notificationService } from '../services/notificationService';
 
 interface DashboardScreenProps {
     navigation: any;
@@ -66,7 +67,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
         grouped['unknown'] = [];
 
         todayEvents.forEach(e => {
-            if (grouped[e.goalId]) grouped[e.goalId].push(e);
+            const gid = e.goalId || 'unknown';
+            if (grouped[gid]) grouped[gid].push(e);
             else grouped['unknown'].push(e);
         });
 
@@ -115,6 +117,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
         const isCompleting = !targetEvent.completed;
         const updatedEvents = allEvents.map(e => e.id === id ? { ...e, completed: isCompleting } : e);
         await db.saveEvents(updatedEvents);
+        await notificationService.resyncAllNotifications(updatedEvents);
 
         if (isCompleting) {
             const { leveledUp, newLevel } = await db.addXP(20); // 20 XP per task
@@ -132,6 +135,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
         const allEvents = await db.getEvents();
         const updatedEvents = allEvents.filter(e => e.id !== id);
         await db.saveEvents(updatedEvents);
+        await notificationService.resyncAllNotifications(updatedEvents);
         loadData();
     };
 
@@ -146,6 +150,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
         );
 
         await db.saveEvents(updatedEvents);
+        await notificationService.resyncAllNotifications(updatedEvents);
         Alert.alert("미루기 완료", "일정이 내일로 이동되었습니다. 😅");
         loadData();
     };
