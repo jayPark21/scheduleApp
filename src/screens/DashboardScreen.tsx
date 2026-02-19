@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert, SectionList } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert, SectionList, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Plus, Flame } from 'lucide-react-native';
@@ -182,9 +182,13 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('Profile')}>
-                            <LinearGradient colors={GRADIENTS.primary} style={styles.avatarGradient}>
-                                <Text style={styles.avatarText}>{profile?.name?.[0] || 'U'}</Text>
-                            </LinearGradient>
+                            {profile?.avatar ? (
+                                <Image source={{ uri: profile.avatar }} style={styles.avatarImage} />
+                            ) : (
+                                <LinearGradient colors={GRADIENTS.primary} style={styles.avatarGradient}>
+                                    <Text style={styles.avatarText}>{profile?.name?.[0] || 'U'}</Text>
+                                </LinearGradient>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -314,6 +318,13 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: COLORS.white,
+    },
+    avatarImage: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.2)',
     },
     listContent: {
         padding: 24,
